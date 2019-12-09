@@ -5,7 +5,7 @@ threadsafe: true
 handlers: #Need to know where to go in the first place
 
 - url: .* #if you go here, we run this script
-  script: hw6.application
+  script: TotalProject.application
 
 libraries: #We need this stuff to run this code
 - name: webapp2

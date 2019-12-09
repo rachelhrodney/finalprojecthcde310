@@ -1,5 +1,6 @@
 import urllib.parse, urllib.request, urllib.error, json
-import http.client, base64, json, Password, requests
+import http.client, base64, Password, requests
+import urllib2, webapp2, os, jinja2, logging
 
 def pretty(obj):
     return json.dumps(obj, sort_keys=True, indent=2)
@@ -11,7 +12,7 @@ def safeMeme(numberofmemes):
     except urllib.error.URLError as e:
         print(e)
         return 'None'
-def getMemes(numberofmemes = 5):
+def getMemes(numberofmemes = 3):
     listofmemes = []
     requeststr = safeMeme(numberofmemes)
     data = json.load(requeststr)
@@ -60,15 +61,6 @@ def get_text_features(img_url):
     analysis = response.json()
     return analysis
 
-def urlToDescription(image):
-    imagedict = get_image_features(image)
-    worddict = get_text_features(image)
-    description = '[Image Description:\n'
-    description += overview(imagedict) +'\n'
-    description += imagedetails(imagedict)
-    description += get_words(worddict)
-    description += '\nEnd Description]'
-    return description
 
 def overview(dict):
     phrase = ''
@@ -100,6 +92,8 @@ def imagedetails(dict):
             phrase += "\nA %s (%.0f/100 confident)" %(object['object'], float(object['confidence'])*100)
     return phrase
 
+
+
 def get_words(dict):
     regionCounter = 0
     if len(dict['regions']) == 0:
@@ -117,4 +111,37 @@ def get_words(dict):
             for word in line['words']:
                 phrase += word['text'] + ' '
     return phrase
+
+def urlToDescription(image):
+    imagedict = get_image_features(image)
+    worddict = get_text_features(image)
+    description = '[Image Description:\n'
+    description += overview(imagedict) +'\n'
+    description += imagedetails(imagedict)
+    description += get_words(worddict)
+    description += '\nEnd Description]'
+    return description
+
+class MainHandler(webapp2.RequestHandler):
+    def get(self):
+        data = {}
+        req = self.request
+        numMemes = 3
+        data['numMemes'] = numMemes
+        memeURLList = getMemes(numMemes)
+        memes = []
+        for memeurl in memeURLList:
+            dict = {}
+            dict['image'] = memeurl
+            dict['text'] = urlToDescription(memeurl)
+            memes.append(dict)
+        data['memes'] = memes
+
+        JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
+                                               extensions=['jinja2.ext.autoescape'],
+                                               autoescape=True)
+        template = JINJA_ENVIRONMENT.get_template('finalwebpagetemplate.html')
+        self.response.write(template.render(data))
+
+application = webapp2.WSGIApplication([('/',MainHandler)], debug =True)
 
