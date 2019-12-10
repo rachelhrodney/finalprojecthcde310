@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Meme Description Generator</title>
+    <link rel="stylesheet" href="finalprojectstyle.css">
+</head>
+<body>
+    <h1 style="text-align:center">Meme Description Generator</h1>
+    <div class="button">Select to Generate Memes!</div>
+    <h2>Check out your random memes</h2>
+    <div class="content">
+        {% for item in memes %}
+            <img src= '{{item.image}}' alt="Meme Pic">
+            <p>'{{item.text}}}'</p>
+    </div>
+</body>
+</html>
