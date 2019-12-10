@@ -1,7 +1,7 @@
-import urllib.parse, urllib.request, urllib.error, json
+import urllib.request, urllib.error, json
 import http.client, base64, Password, requests
 import webapp2, os, jinja2
-#import urllib2,logging
+import urllib2,logging
 
 def pretty(obj):
     return json.dumps(obj, sort_keys=True, indent=2)
@@ -9,9 +9,9 @@ def pretty(obj):
 def safeMeme(numberofmemes):
     memeURL = 'https://meme-api.herokuapp.com'
     try:
-        return urllib.request.urlopen(memeURL + '/gimme/' + str(numberofmemes))
-    except urllib.error.URLError as e:
-        print(e)
+        return urllib2.urlopen(memeURL + '/gimme/' + str(numberofmemes))
+    except urllib2.URLError as e:
+        logging.error(e)
         return 'None'
 def getMemes(numberofmemes = 3):
     listofmemes = []
@@ -22,6 +22,7 @@ def getMemes(numberofmemes = 3):
         listofmemes.append(meme['url'])
         if listofmemes is []:
             listofmemes[0] = 'This meme does not exist'
+            logging.error('No memes in list')
     return listofmemes
 
 def get_image_features(img_url):
@@ -48,8 +49,7 @@ def get_image_features(img_url):
             return parsed
         conn.close()
     except Exception as e:
-        print('Error:')
-        print(e)
+        logging.error('Error:', e)
 
 def get_text_features(img_url):
     #Code from https://docs.microsoft.com/en-us/azure/cognitive-services/computer-vision/quickstarts/python-print-text
