@@ -1,6 +1,7 @@
 import urllib.parse, urllib.request, urllib.error, json
 import http.client, base64, Password, requests
-import urllib2, webapp2, os, jinja2, logging
+import webapp2, os, jinja2
+#import urllib2,logging
 
 def pretty(obj):
     return json.dumps(obj, sort_keys=True, indent=2)
