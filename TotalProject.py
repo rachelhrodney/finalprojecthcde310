@@ -151,5 +151,32 @@ class MainHandler(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('finalwebpagetemplate.html')
         self.response.write(template.render(data))
 
-application = webapp2.WSGIApplication([('/',MainHandler)], debug =True)
+class ResponseHandler(webapp2.RequestHandler):
+    def get(self):
+        data = {}
+        req = self.request
+        numMemes = req.get('num')
+        if numMemes:
+            data['numMemes'] = numMemes
+        else:
+            data['numMemes'] = 3
+        memeURLList = getMemes(numMemes)
+        memes = []
+        for memeurl in memeURLList:
+            dict = {}
+            dict['image'] = memeurl
+            dict['text'] = urlToDescription(memeurl)
+            memes.append(dict)
+        data['memes'] = memes
+
+        JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
+                                               extensions=['jinja2.ext.autoescape'],
+                                               autoescape=True)
+        template = JINJA_ENVIRONMENT.get_template('finalwebpagetemplate.html')
+        self.response.write(template.render(data))
+
+application = webapp2.WSGIApplication([\
+    ('/getnum', ResponseHandler),
+    ('/',MainHandler)
+    ], debug =True)
 

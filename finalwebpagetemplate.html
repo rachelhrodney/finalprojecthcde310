@@ -7,12 +7,16 @@
 </head>
 <body>
     <h1 style="text-align:center">Meme Description Generator</h1>
-    <div class="button">Select to Generate Memes!</div>
+    <form action = "getnum" method = "get">
+        <label for = "num">How many memes do you want to generate?</label>
+        <input type="integer" id = "num" name = "num" />
+<!--        <input type="submit" value="Generate Memes" name="gobtn" />-->
+    </form>
     <h2>Check out your random memes</h2>
     <div class="content">
         {% for item in memes %}
-            <img src= '{{item.image}}' alt="Meme Pic">
-            <p>'{{item.text}}}'</p>
+            <img src= '{{item.image}}' alt="Meme Pic" width = "60%">
+            <p>'{{item.text|safe}}'</p>
         {% endfor %}
     </div>
 </body>
