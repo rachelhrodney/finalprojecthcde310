@@ -1,7 +1,8 @@
-import urllib.request, urllib.error, json
-import http.client, base64, Password, requests
+import json
+import httplib, base64, Password
 import webapp2, os, jinja2
-import urllib2,logging
+import urllib2,logging, urllib
+#urllib.request, urllib.error
 
 def pretty(obj):
     return json.dumps(obj, sort_keys=True, indent=2)
@@ -32,7 +33,7 @@ def get_image_features(img_url):
         'Content-Type': 'application/json',
         'Ocp-Apim-Subscription-Key': Password.microsoftKey,
     }
-    params = urllib.parse.urlencode({
+    params = urllib.urlencode({
         # Request parameters. All of them are optional.
         'visualFeatures': 'Categories,Description,Color,Adult,Brands,Faces,ImageType,Objects',
         'language': 'en',
@@ -40,7 +41,7 @@ def get_image_features(img_url):
     body = "{'url':'" + img_url + "'}"
     try:
         # Execute the REST API call and get the response.
-        conn = http.client.HTTPSConnection(Password.uri)
+        conn = httplib.HTTPSConnection(Password.uri)
         conn.request("POST", "/vision/v2.0/analyze?%s" % params, body, headers)
         response = conn.getresponse()
         data = response.read()
@@ -54,19 +55,24 @@ def get_image_features(img_url):
 def get_text_features(img_url):
     #Code from https://docs.microsoft.com/en-us/azure/cognitive-services/computer-vision/quickstarts/python-print-text
     url = Password.microsoftBase + "vision/v2.1/ocr"
-    headers = {'Ocp-Apim-Subscription-Key': Password.microsoftKey,}
+    headers = {'Ocp-Apim-Subscription-Key': Password.microsoftKey,'Content-type':'application/json'}
     params = {'mode': 'Printed'}
     body = {'url': img_url}
-    response = requests.post(url, headers = headers, params = params, json = body)
-    response.raise_for_status()
-    analysis = response.json()
+    logging.info(img_url)
+    fullurl = url + "?" + urllib.urlencode(params)
+    req = urllib2.Request(fullurl,headers=headers,data=json.dumps(body))
+    resp = urllib2.urlopen(req)
+    analysis = json.load(resp)
+    #response = requests.post(url, headers = headers, params = params, json = body)
+    #response.raise_for_status()
+    #analysis = response.json()
     return analysis
 
 
 def overview(dict):
     phrase = ''
     if dict['adult']['isAdultContent']:
-        phrase += 'NSFW: Adult Content Detected (%.0f/100 confidence).\n' %dict['adult']['adultScore']*100
+        phrase += 'NSFW: Adult Content Detected (%.0f/100 confidence).<br>' %dict['adult']['adultScore']*100
     if dict['color']['isBWImg']:
         phrase += 'A black and white image'
     else:
@@ -79,18 +85,19 @@ def overview(dict):
         phrase += ' containing line drawings'
     if dict['color']['dominantColorBackground'] != 'None':
         phrase += ' with a %s background' %dict['color']['dominantColorBackground'].lower()
-    phrase += '.'
+    phrase += '.<br>'
     return phrase
 
 def imagedetails(dict):
     phrase = 'The image is of '
-    phrase += dict['description']['captions'][0]['text']
-    phrase += ' (confidence: %.0f/100).\n'%dict['description']['captions'][0]['confidence']*100
+    phrase = phrase + dict['description']['captions'][0]['text']
+    logging.info(pretty(dict))
+    phrase += ' (confidence: %.0f/100).<br>'%(float(dict['description']['captions'][0]['confidence'])*100)
     objects = dict['objects']
     if dict['objects'] is not None and len(dict['objects']) != 0:
         phrase += '%d objects found:' %len(dict['objects'])
         for object in dict['objects']:
-            phrase += "\nA %s (%.0f/100 confident)" %(object['object'], float(object['confidence'])*100)
+            phrase += "<br>A %s (%.0f/100 confident)" %(object['object'], (float(object['confidence'])*100))
     return phrase
 
 
@@ -99,15 +106,15 @@ def get_words(dict):
     regionCounter = 0
     if len(dict['regions']) == 0:
         return ""
-    phrase = "Image Text:\n"
+    phrase = "Image Text:<br>"
     for region in dict['regions']:
         if regionCounter != 0:
-            phrase += '\n'
+            phrase += '<br>'
         regionCounter +=1
         lineCounter = 0
         for line in region['lines']:
             if lineCounter != 0:
-                phrase += '\n'
+                phrase += '<br>'
             lineCounter += 1
             for word in line['words']:
                 phrase += word['text'] + ' '
@@ -116,18 +123,18 @@ def get_words(dict):
 def urlToDescription(image):
     imagedict = get_image_features(image)
     worddict = get_text_features(image)
-    description = '[Image Description:\n'
-    description += overview(imagedict) +'\n'
+    description = '[Image Description: <br>'
+    description += overview(imagedict) +'<br>'
     description += imagedetails(imagedict)
     description += get_words(worddict)
-    description += '\nEnd Description]'
+    description += '<br>End Description]'
     return description
 
 class MainHandler(webapp2.RequestHandler):
     def get(self):
         data = {}
         req = self.request
-        numMemes = 3
+        numMemes = req.get('num', 3)
         data['numMemes'] = numMemes
         memeURLList = getMemes(numMemes)
         memes = []
