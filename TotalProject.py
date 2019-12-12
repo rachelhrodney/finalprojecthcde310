@@ -22,12 +22,15 @@ def getMemes(numberofmemes = 3):
     for meme in results:
         listofmemes.append(meme['url'])
         if listofmemes is []:
-            listofmemes[0] = 'This meme does not exist'
             logging.error('No memes in list')
+            return None
     return listofmemes
 
 def get_image_features(img_url):
     # Code from https://www.mssqltips.com/sqlservertip/5955/azure-vision-service-and-face-api-example-with-python/
+    if img_url is None:
+        logging.info('No url found')
+        return None
     headers = {
         # Request headers.
         'Content-Type': 'application/json',
@@ -54,6 +57,9 @@ def get_image_features(img_url):
 
 def get_text_features(img_url):
     #Code from https://docs.microsoft.com/en-us/azure/cognitive-services/computer-vision/quickstarts/python-print-text
+    if img_url is None:
+        logging.info('No Image url passed to text')
+        return None
     url = Password.microsoftBase + "vision/v2.1/ocr"
     headers = {'Ocp-Apim-Subscription-Key': Password.microsoftKey,'Content-type':'application/json'}
     params = {'mode': 'Printed'}
@@ -61,7 +67,7 @@ def get_text_features(img_url):
     logging.info(img_url)
     fullurl = url + "?" + urllib.urlencode(params)
     req = urllib2.Request(fullurl,headers=headers,data=json.dumps(body))
-    resp = urllib2.urlopen(req)
+    resp = urllib2.urlopen(req, timeout=30)
     analysis = json.load(resp)
     #response = requests.post(url, headers = headers, params = params, json = body)
     #response.raise_for_status()
@@ -70,6 +76,8 @@ def get_text_features(img_url):
 
 
 def overview(dict):
+    if dict is None:
+        return 'No image Found'
     phrase = ''
     if dict['adult']['isAdultContent']:
         phrase += 'NSFW: Adult Content Detected (%.0f/100 confidence).<br>' %dict['adult']['adultScore']*100
@@ -89,13 +97,20 @@ def overview(dict):
     return phrase
 
 def imagedetails(dict):
-    phrase = 'The image is of '
-    phrase = phrase + dict['description']['captions'][0]['text']
+    if dict is None:
+        return 'No image Description'
     logging.info(pretty(dict))
-    phrase += ' (confidence: %.0f/100).<br>'%(float(dict['description']['captions'][0]['confidence'])*100)
-    objects = dict['objects']
+    phrase = 'The image is of '
+    if dict['description']['captions'] != []:
+        phrase = phrase + dict['description']['captions'][0]['text']
+        phrase = phrase + ' (confidence: %.0f/100).<br>' % (float(dict['description']['captions'][0]['confidence']) * 100)
+    else:
+        phrase = phrase + 'No image description found. <br>'
     if dict['objects'] is not None and len(dict['objects']) != 0:
-        phrase += '%d objects found:' %len(dict['objects'])
+        if len(dict['objects']) == 1:
+            phrase += '1 object found:'
+        else:
+            phrase += '%d objects found:' %len(dict['objects'])
         for object in dict['objects']:
             phrase += "<br>A %s (%.0f/100 confident)" %(object['object'], (float(object['confidence'])*100))
     return phrase
@@ -103,10 +118,12 @@ def imagedetails(dict):
 
 
 def get_words(dict):
+    if dict is None:
+        return 'No Text Found'
     regionCounter = 0
     if len(dict['regions']) == 0:
         return ""
-    phrase = "Image Text:<br>"
+    phrase = "<br>Image Text:<br>"
     for region in dict['regions']:
         if regionCounter != 0:
             phrase += '<br>'
